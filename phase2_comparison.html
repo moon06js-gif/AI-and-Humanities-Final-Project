@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 2 — Chain Comparison: GPT vs Claude vs Human</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap');
+  :root {
+    --bg:#F5F2EC; --surface:#FDFBF7; --border:#E2DDD4;
+    --text:#1A1714; --muted:#7A7369;
+    --gpt:#2563EB; --gpt-light:#EFF6FF;
+    --claude:#7C3AED; --claude-light:#F5F3FF;
+    --human:#B45309; --human-light:#FFFBEB;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:'Syne',sans-serif; line-height:1.6; }
+
+  .header { background:var(--text); color:var(--bg); padding:28px 40px; }
+  .header h1 { font-size:22px; font-weight:700; margin-bottom:4px; }
+  .header p { font-family:'DM Mono',monospace; font-size:11px; color:#AAA9A0; }
+
+  .main { padding:32px 40px; max-width:1080px; margin:0 auto; }
+  .section-title { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase;
+    letter-spacing:0.07em; margin-bottom:14px; margin-top:32px; }
+  .section-title:first-child { margin-top:0; }
+
+  /* KEY FINDING */
+  .finding-box { background:var(--text); color:var(--bg); border-radius:12px; padding:24px 28px; margin-bottom:32px; }
+  .finding-box h2 { font-size:17px; font-weight:600; margin-bottom:16px; line-height:1.45; }
+  .finding-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .finding-item { background:rgba(255,255,255,0.07); border-radius:8px; padding:14px 16px; }
+  .finding-num { font-size:30px; font-weight:700; margin-bottom:6px; }
+  .finding-label { font-family:'DM Mono',monospace; font-size:11px; color:#AAA; line-height:1.55; }
+  .num-gpt { color:#60A5FA; }
+  .num-claude { color:#C084FC; }
+  .num-human { color:#FCD34D; }
+
+  /* OPAQUE BAR */
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:22px; margin-bottom:18px; }
+  .card-title { font-size:12px; color:var(--muted); font-family:'DM Mono',monospace; margin-bottom:16px; }
+  .opaque-row { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+  .opaque-row:last-child { margin-bottom:0; }
+  .opaque-source { font-family:'DM Mono',monospace; font-size:12px; font-weight:500; width:72px; flex-shrink:0; }
+  .opaque-track { flex:1; height:26px; background:var(--bg); border-radius:6px; overflow:hidden; }
+  .opaque-fill { height:100%; border-radius:6px; display:flex; align-items:center; padding-left:10px;
+    font-family:'DM Mono',monospace; font-size:10px; font-weight:500; color:white; }
+  .opaque-pct { font-family:'DM Mono',monospace; font-size:13px; font-weight:500; width:48px; text-align:right; }
+  .insight { font-size:12px; color:var(--muted); line-height:1.7; margin-top:14px;
+    padding-top:14px; border-top:0.5px solid var(--border); }
+  .insight strong { color:var(--text); }
+
+  /* TYPE DIST */
+  .dist-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:18px; }
+  .dist-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px; }
+  .dist-source { font-size:13px; font-weight:600; margin-bottom:3px; }
+  .dist-sub { font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); margin-bottom:14px; }
+  .bar-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .bar-label { font-family:'DM Mono',monospace; font-size:10px; width:70px; flex-shrink:0; }
+  .bar-track { flex:1; height:9px; background:var(--bg); border-radius:4px; overflow:hidden; }
+  .bar-fill { height:100%; border-radius:4px; }
+  .bar-num { font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); width:50px; text-align:right; }
+
+  /* PATTERN CARDS */
+  .pattern-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-bottom:18px; }
+  .pattern-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px; }
+  .pattern-title { font-size:13px; font-weight:600; margin-bottom:8px; }
+  .pattern-body { font-size:12px; color:var(--muted); line-height:1.7; }
+  .pattern-body strong { color:var(--text); font-weight:500; }
+  .tag { display:inline-block; font-family:'DM Mono',monospace; font-size:10px; font-weight:500;
+    padding:2px 8px; border-radius:99px; margin-right:4px; }
+  .tag-gpt { background:var(--gpt-light); color:var(--gpt); }
+  .tag-claude { background:var(--claude-light); color:var(--claude); }
+  .tag-human { background:var(--human-light); color:var(--human); }
+
+  /* REPEAT WORDS */
+  .repeat-card { background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:18px; margin-bottom:18px; }
+  .repeat-body { font-size:12px; color:var(--muted); line-height:1.8; }
+  .repeat-body strong { color:var(--text); font-weight:500; }
+
+  /* EXAMPLES */
+  .example-outer { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:14px; }
+  .example-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  .example-trigger { font-size:16px; font-weight:700; margin-bottom:10px; }
+  .example-source { font-family:'DM Mono',monospace; font-size:10px; font-weight:500; margin-bottom:6px; }
+  .chain-flow { display:flex; flex-wrap:wrap; gap:3px; align-items:center; }
+  .cw { font-family:'DM Mono',monospace; font-size:10px; background:var(--bg);
+    border:0.5px solid var(--border); border-radius:4px; padding:2px 6px; }
+  .cw-h { background:#FFF7ED; border-color:#FDBA74; color:#9A3412; font-weight:500; }
+  .ca { font-family:'DM Mono',monospace; font-size:9px; color:var(--border); }
+  .example-note { margin-top:8px; font-size:11px; color:var(--muted); font-family:'DM Mono',monospace; }
+
+  /* CAT TABLE */
+  table { width:100%; border-collapse:collapse; background:var(--surface);
+    border:1px solid var(--border); border-radius:12px; overflow:hidden; font-size:12px; }
+  th { background:var(--bg); padding:10px 14px; font-size:10px; font-weight:600; text-align:left;
+    font-family:'DM Mono',monospace; color:var(--muted); border-bottom:1px solid var(--border); }
+  td { padding:10px 14px; border-bottom:0.5px solid var(--border); }
+  tr:last-child td { border-bottom:none; }
+  td:first-child { font-weight:600; }
+
+  /* IMPLICATION */
+  .implication { background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:20px; font-size:13px; color:var(--muted); line-height:1.75; }
+  .implication strong { color:var(--text); font-weight:500; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Phase 2 — Chain Comparison Analysis</h1>
+  <p>ChatGPT vs Claude vs Human · 15 trigger words · 285 transitions each · Connection type classification</p>
+</div>
+
+<div class="main">
+
+  <div class="finding-box">
+    <h2>Core finding: Three fundamentally different associative strategies</h2>
+    <div class="finding-grid">
+      <div class="finding-item">
+        <div class="finding-num num-gpt">83.9%</div>
+        <div class="finding-label">GPT transitions are opaque — no traceable connection between consecutive words</div>
+      </div>
+      <div class="finding-item">
+        <div class="finding-num num-claude">53%</div>
+        <div class="finding-label">Claude transitions are linguistic — compound words, idioms, phonetic chains dominate</div>
+      </div>
+      <div class="finding-item">
+        <div class="finding-num num-human">31%</div>
+        <div class="finding-label">Human transitions are cultural — personal knowledge, lived experience, pop culture</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Opaque transition rate</div>
+  <div class="card">
+    <div class="card-title">How often does the chain become unexplainable? (out of 285 transitions each)</div>
+    <div class="opaque-row">
+      <span class="opaque-source" style="color:var(--gpt)">ChatGPT</span>
+      <div class="opaque-track">
+        <div class="opaque-fill" style="width:83.9%;background:var(--gpt)">239 / 285</div>
+      </div>
+      <span class="opaque-pct" style="color:var(--gpt)">83.9%</span>
+    </div>
+    <div class="opaque-row">
+      <span class="opaque-source" style="color:var(--claude)">Claude</span>
+      <div class="opaque-track">
+        <div class="opaque-fill" style="width:6.7%;background:var(--claude)">19</div>
+      </div>
+      <span class="opaque-pct" style="color:var(--claude)">6.7%</span>
+    </div>
+    <div class="opaque-row">
+      <span class="opaque-source" style="color:var(--human)">Human</span>
+      <div class="opaque-track">
+        <div class="opaque-fill" style="width:5.6%;background:var(--human)">16</div>
+      </div>
+      <span class="opaque-pct" style="color:var(--human)">5.6%</span>
+    </div>
+    <div class="insight">
+      <strong>Key insight:</strong> Claude and Human have nearly identical opaque rates (6.7% vs 5.6%), while GPT is opaque 84% of the time. GPT chains are structurally closer to <em>random word lists</em> than genuine associative thought. Claude's low opaque rate reflects its linguistic-compound strategy — transitions are traceable, but via a <em>different mechanism</em> than humans use.
+    </div>
+  </div>
+
+  <div class="section-title">Connection type distribution</div>
+  <div class="dist-grid">
+    <div class="dist-card">
+      <div class="dist-source" style="color:var(--gpt)">ChatGPT</div>
+      <div class="dist-sub">Strategy: opaque drift</div>
+      <div class="bar-row"><span class="bar-label" style="color:#95A5A6">opaque</span><div class="bar-track"><div class="bar-fill" style="width:83.9%;background:#95A5A6"></div></div><span class="bar-num">239 (84%)</span></div>
+      <div class="bar-row"><span class="bar-label" style="color:#27AE60">cultural</span><div class="bar-track"><div class="bar-fill" style="width:7.7%;background:#27AE60"></div></div><span class="bar-num">22 (8%)</span></div>
+      <div class="bar-row"><span class="bar-label" style="color:#E67E22">sensory</span><div class="bar-track"><div class="bar-fill" style="width:6.7%;background:#E67E22"></div></div><span class="bar-num">19 (7%)</span></div>
+      <div class="bar-row"><span class="bar-label" style="color:#2980B9">linguistic</span><div class="bar-track"><div class="bar-fill" style="width:1.8%;background:#2980B9"></div></div><span class="bar-num">5 (2%)</span></div>
+      <div class="bar-row"><span class="bar-label" style="color:#C0392B">emotional</span><div class="bar-track"><div class="bar-fill" style="width:0%;background:#C0392B"></div></div><span class="bar-num">0 (0%)</span></div>
+      <div class="bar-row"><span class="bar-label" style="color:#8E44AD">memory</span><div class="bar-track"><div class="bar-fill" style="width:0%;background:#8E44AD"></div></div><span class="bar-num">0 (0%)</span></div>
+    </div>
+    <div class="dist-card">
+      <div class="dist-source" style="color:var(--claude)">Claude</div>
+      <div class="dist-sub">Strategy: linguistic compounding</div>
+      <div class="bar-row"><span class="bar-label" style="color:#2980B9">linguistic</span><div class="bar-track"><div class="bar-fill" style="width:53%;background:#2980B9"></div></div><span class="bar-num">152 (53%)</span></div>
+      <div class="bar-row"><span class="bar-label" style="color:#27AE60">cultural</span><div class="bar-track"><div class="bar-fill" style="width:15%;background:#27AE60"></div></div><span class="bar-num">43 (15%)</span></div>
+      <div class="bar-row"><span class="bar-label" style="color:#8E44AD">memory</span><div class="bar-track"><div class="bar-fill" style="width:13%;background:#8E44AD"></div></div><span class="bar-num">37 (13%)</span></div>
+      <div class="bar-row"><span class="bar-label" style="color:#E67E22">sensory</span><div class="bar-track"><div class="bar-fill" style="width:6.7%;background:#E67E22"></div></div><span class="bar-num">19 (7%)</span></div>
+      <div class="bar-row"><span class="bar-label" style="color:#95A5A6">opaque</span><div class="bar-track"><div class="bar-fill" style="width:6.7%;background:#95A5A6"></div></div><span class="bar-num">19 (7%)</span></div>
+      <div class="bar-row"><span class="bar-label" style="color:#C0392B">emotional</span><div class="bar-track"><div class="bar-fill" style="width:5.3%;background:#C0392B"></div></div><span class="bar-num">15 (5%)</span></div>
+    </div>
+    <div class="dist-card">
+      <div class="dist-source" style="color:var(--human)">Human</div>
+      <div class="dist-sub">Strategy: cultural + sensory memory</div>
+      <div class="bar-row"><span class="bar-label" style="color:#27AE60">cultural</span><div class="bar-track"><div class="bar-fill" style="width:30.6%;background:#27AE60"></div></div><span class="bar-num">87 (31%)</span></div>
+      <div class="bar-row"><span class="bar-label" style="color:#E67E22">sensory</span><div class="bar-track"><div class="bar-fill" style="width:25%;background:#E67E22"></div></div><span class="bar-num">71 (25%)</span></div>
+      <div class="bar-row"><span class="bar-label" style="color:#2980B9">linguistic</span><div class="bar-track"><div class="bar-fill" style="width:15.5%;background:#2980B9"></div></div><span class="bar-num">44 (15%)</span></div>
+      <div class="bar-row"><span class="bar-label" style="color:#8E44AD">memory</span><div class="bar-track"><div class="bar-fill" style="width:14.8%;background:#8E44AD"></div></div><span class="bar-num">42 (15%)</span></div>
+      <div class="bar-row"><span class="bar-label" style="color:#C0392B">emotional</span><div class="bar-track"><div class="bar-fill" style="width:8.5%;background:#C0392B"></div></div><span class="bar-num">24 (8%)</span></div>
+      <div class="bar-row"><span class="bar-label" style="color:#95A5A6">opaque</span><div class="bar-track"><div class="bar-fill" style="width:5.6%;background:#95A5A6"></div></div><span class="bar-num">16 (6%)</span></div>
+    </div>
+  </div>
+
+  <div class="section-title">Pattern analysis</div>
+  <div class="pattern-grid">
+    <div class="pattern-card">
+      <div class="pattern-title"><span class="tag tag-gpt">ChatGPT</span> The random walk problem</div>
+      <div class="pattern-body">
+        GPT chains show <strong>aesthetic drift</strong> — words like <em>Velvet, Static, Marble, Receipt, Helmet</em> recur across multiple trigger words regardless of starting point. GPT is sampling from a cluster of aesthetically "interesting" words rather than genuinely associating. The 83.9% opaque rate means GPT chains are functionally <strong>uninterpretable</strong>.
+      </div>
+    </div>
+    <div class="pattern-card">
+      <div class="pattern-title"><span class="tag tag-claude">Claude</span> The compound word machine</div>
+      <div class="pattern-body">
+        Claude chains almost exclusively via <strong>linguistic compounding</strong>. <em>Salt → Lick → Cow → Bell → Hop → Scotch → Tape → Worm...</em> Traceable and low opaque rate, but a <strong>different mechanism</strong> from human association. Humans chain via sensory memory and cultural experience. Claude's chains are logically coherent but <strong>experientially hollow</strong>.
+      </div>
+    </div>
+    <div class="pattern-card">
+      <div class="pattern-title"><span class="tag tag-human">Human</span> The personal signature</div>
+      <div class="pattern-body">
+        Human chains contain what no AI chain does: <strong>specific proper nouns and personal references</strong>. <em>Shane Hollander, Joakim Noah, Diego, Kaiser, Bay to Breakers, SGA</em> — these reveal a real person's biography. Human chains also show <strong>emotional pivots</strong> that reflect lived social experience.
+      </div>
+    </div>
+    <div class="pattern-card">
+      <div class="pattern-title">The opaque paradox</div>
+      <div class="pattern-body">
+        <strong>Human opaque transitions are more meaningful than AI ones.</strong> When a human chain goes opaque (Hold → Visa, Month → Asian, Flaw → Flea), these are windows into personal history. When GPT goes opaque (84%), it is simply <strong>statistical noise</strong>. Opacity in humans signals depth; opacity in GPT signals the absence of any associative mechanism.
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">GPT's recurring aesthetic words (3+ trigger words)</div>
+  <div class="repeat-card">
+    <div class="repeat-body">
+      These words appear in GPT chains across multiple different trigger words, suggesting GPT samples from a fixed vocabulary rather than genuinely associating:<br><br>
+      <span class="tag tag-gpt">Velvet (5×)</span>
+      <span class="tag tag-gpt">Static (5×)</span>
+      <span class="tag tag-gpt">Helmet (5×)</span>
+      <span class="tag tag-gpt">Receipt (5×)</span>
+      <span class="tag tag-gpt">Marble (3×)</span>
+      <span class="tag tag-gpt">Basement (3×)</span>
+      <span class="tag tag-gpt">Chalk (3×)</span>
+      <span class="tag tag-gpt">Carousel (3×)</span>
+      <span class="tag tag-gpt">Lobster (3×)</span>
+      <span class="tag tag-gpt">Curtain (3×)</span>
+      <span class="tag tag-gpt">Balcony (3×)</span>
+      <span class="tag tag-gpt">Ladder (3×)</span>
+      <br><br>
+      <strong>None of these words appear more than once in any human chain.</strong>
+    </div>
+  </div>
+
+  <div class="section-title">Human chains by category (A / B / C)</div>
+  <table style="margin-bottom:18px">
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Top connection type</th>
+        <th>2nd type</th>
+        <th>Opaque count</th>
+        <th>Key insight</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="tag" style="background:#E1F5EE;color:#0F6E56">A — Concrete</span></td>
+        <td style="color:#27AE60">cultural (33)</td>
+        <td style="color:#E67E22">sensory (27)</td>
+        <td>4</td>
+        <td style="color:var(--muted);font-size:11px">Physical objects trigger sensory memory first, then cultural knowledge</td>
+      </tr>
+      <tr>
+        <td><span class="tag" style="background:#E6F1FB;color:#185FA5">B — Action</span></td>
+        <td style="color:#27AE60">cultural (38)</td>
+        <td style="color:#E67E22">sensory (25)</td>
+        <td>8</td>
+        <td style="color:var(--muted);font-size:11px">Actions trigger the most opaque transitions — personal biographies surface</td>
+      </tr>
+      <tr>
+        <td><span class="tag" style="background:#FAECE7;color:#993C1D">C — Abstract</span></td>
+        <td style="color:#8E44AD">memory (25)</td>
+        <td style="color:#2980B9">linguistic (21)</td>
+        <td>4</td>
+        <td style="color:var(--muted);font-size:11px">Abstract words force humans into personal memory — the most intimate chains</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="section-title">Illustrative examples — same trigger, three different strategies</div>
+  <div class="example-outer">
+    <div class="example-card">
+      <div class="example-trigger">Almost</div>
+      <div class="example-source" style="color:var(--gpt)">ChatGPT — aesthetic drift</div>
+      <div class="chain-flow">
+        <span class="cw">Almost</span><span class="ca">→</span><span class="cw">Deadline</span><span class="ca">→</span><span class="cw">Pencil</span><span class="ca">→</span><span class="cw">Raincoat</span><span class="ca">→</span><span class="cw">Battery</span><span class="ca">→</span><span class="cw">Ladder</span><span class="ca">→</span><span class="cw">Spinach</span><span class="ca">→</span><span class="cw">Mosaic</span>
+      </div>
+      <div class="example-note">No emotional logic. Pure drift.</div>
+    </div>
+    <div class="example-card">
+      <div class="example-trigger">Almost</div>
+      <div class="example-source" style="color:var(--claude)">Claude — compound chaining</div>
+      <div class="chain-flow">
+        <span class="cw">Almost</span><span class="ca">→</span><span class="cw">Famous</span><span class="ca">→</span><span class="cw">Last</span><span class="ca">→</span><span class="cw">Words</span><span class="ca">→</span><span class="cw">Crossword</span><span class="ca">→</span><span class="cw">Pencil</span><span class="ca">→</span><span class="cw">Eraser</span><span class="ca">→</span><span class="cw">Crumb</span>
+      </div>
+      <div class="example-note">Traceable but mechanical. No personal stake.</div>
+    </div>
+    <div class="example-card">
+      <div class="example-trigger">Almost</div>
+      <div class="example-source" style="color:var(--human)">Human — personal anxiety</div>
+      <div class="chain-flow">
+        <span class="cw">Almost</span><span class="ca">→</span><span class="cw">Close</span><span class="ca">→</span><span class="cw">Soon</span><span class="ca">→</span><span class="cw cw-h">Job</span><span class="ca">→</span><span class="cw cw-h">Food</span><span class="ca">→</span><span class="cw">Class</span><span class="ca">→</span><span class="cw">Deadline</span><span class="ca">→</span><span class="cw cw-h">Flaw→Flea</span>
+      </div>
+      <div class="example-note">Highlighted: personal pivots. A student's life surfaces.</div>
+    </div>
+  </div>
+  <div class="example-outer">
+    <div class="example-card">
+      <div class="example-trigger">Walk</div>
+      <div class="example-source" style="color:var(--gpt)">ChatGPT</div>
+      <div class="chain-flow">
+        <span class="cw">Walk</span><span class="ca">→</span><span class="cw">Sidewalk</span><span class="ca">→</span><span class="cw">Bubble</span><span class="ca">→</span><span class="cw">Curtain</span><span class="ca">→</span><span class="cw">Battery</span><span class="ca">→</span><span class="cw">Mango</span><span class="ca">→</span><span class="cw">Helmet</span><span class="ca">→</span><span class="cw">Velvet</span>
+      </div>
+      <div class="example-note">"Velvet" appears again. Pure aesthetic sampling.</div>
+    </div>
+    <div class="example-card">
+      <div class="example-trigger">Walk</div>
+      <div class="example-source" style="color:var(--claude)">Claude</div>
+      <div class="chain-flow">
+        <span class="cw">Walk</span><span class="ca">→</span><span class="cw">Plank</span><span class="ca">→</span><span class="cw">Pirate</span><span class="ca">→</span><span class="cw">Eye</span><span class="ca">→</span><span class="cw">Wink</span><span class="ca">→</span><span class="cw">Conspirator</span><span class="ca">→</span><span class="cw">Cloak</span><span class="ca">→</span><span class="cw">Dagger</span>
+      </div>
+      <div class="example-note">Walk the Plank → compound chain. Clever but scripted.</div>
+    </div>
+    <div class="example-card">
+      <div class="example-trigger">Walk</div>
+      <div class="example-source" style="color:var(--human)">Human</div>
+      <div class="chain-flow">
+        <span class="cw">Walk</span><span class="ca">→</span><span class="cw">Shoes</span><span class="ca">→</span><span class="cw">Adidas</span><span class="ca">→</span><span class="cw">Nike</span><span class="ca">→</span><span class="cw">NBA</span><span class="ca">→</span><span class="cw cw-h">SGA</span><span class="ca">→</span><span class="cw cw-h">Joakim Noah</span><span class="ca">→</span><span class="cw">Bulls</span>
+      </div>
+      <div class="example-note">Highlighted: personal fan knowledge. Biography leaks in.</div>
+    </div>
+  </div>
+
+  <div class="section-title">Implications for Phase 3 (Turing Test)</div>
+  <div class="implication">
+    Based on this analysis, human evaluators in Phase 3 should find it <strong>easy to identify GPT</strong> (random drift, recurring aesthetic words, zero personal markers) but <strong>harder to distinguish Claude from Human</strong> — both have low opaque rates and traceable transitions. The key discriminator will be: <em>does the chain contain any specific proper nouns, personal references, or emotional pivots?</em> If yes → likely Human. If the chain is traceable but generic, with no biographical fingerprint → likely Claude.<br><br>
+    This predicts that <strong>Claude's chains will be misidentified as human more often than GPT's</strong> — an interesting asymmetry to watch for in Phase 3 results.
+  </div>
+
+</div>
+</body>
+</html>

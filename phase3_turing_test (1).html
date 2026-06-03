@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 3 — Word Chain Turing Test</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg: #F5F2EC;
+    --surface: #FDFBF7;
+    --border: #E2DDD4;
+    --text: #1A1714;
+    --muted: #7A7369;
+    --accent: #2D5A3D;
+    --accent-light: #EAF2ED;
+    --tag-a: #3B4F8C;
+    --tag-a-bg: #EEF1FA;
+    --tag-b: #8C3B3B;
+    --tag-b-bg: #FAF0EE;
+    --tag-c: #5C3B8C;
+    --tag-c-bg: #F3EEFA;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--text);
+    color: var(--bg);
+    padding: 28px 40px 24px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  .header-left h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  .header-left p {
+    font-size: 12px;
+    color: #AAA49A;
+    font-family: 'DM Mono', monospace;
+    font-weight: 300;
+  }
+  .header-right {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: #7A7369;
+    text-align: right;
+    line-height: 1.6;
+  }
+
+  /* INSTRUCTIONS BANNER */
+  .instructions {
+    background: var(--accent-light);
+    border-bottom: 1px solid #C8DFD0;
+    padding: 14px 40px;
+    font-size: 12px;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .instructions span::before { content: "→ "; opacity: 0.5; }
+
+  /* MAIN */
+  .main { padding: 32px 40px; max-width: 1100px; margin: 0 auto; }
+
+  /* TRIGGER CARD */
+  .trigger-section {
+    margin-bottom: 40px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .trigger-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .trigger-header-left {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+  .trigger-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 300;
+  }
+  .trigger-word {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .trigger-cat {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-family: 'DM Mono', monospace;
+  }
+  .cat-A { background: #E1F5EE; color: #0F6E56; }
+  .cat-B { background: #E6F1FB; color: #185FA5; }
+  .cat-C { background: #FAECE7; color: #993C1D; }
+
+  .reveal-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 14px;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+  .reveal-btn:hover { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .reveal-btn.revealed { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* CHAINS GRID */
+  .chains-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+  }
+  .chain-col {
+    padding: 20px 24px;
+    border-right: 1px solid var(--border);
+  }
+  .chain-col:last-child { border-right: none; }
+
+  .chain-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .label-a { color: var(--tag-a); }
+  .label-b { color: var(--tag-b); }
+  .label-c { color: var(--tag-c); }
+
+  .label-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-a { background: var(--tag-a); }
+  .dot-b { background: var(--tag-b); }
+  .dot-c { background: var(--tag-c); }
+
+  .chain-words {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+  }
+  .chain-word {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 3px 8px;
+    line-height: 1.4;
+  }
+  .chain-arrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--border);
+  }
+  .chain-word.trigger-w {
+    background: var(--text);
+    color: var(--bg);
+    border-color: var(--text);
+    font-weight: 500;
+  }
+
+  /* REVEAL OVERLAY */
+  .identity-row {
+    display: none;
+    padding: 14px 24px;
+    border-top: 1px solid var(--border);
+    background: #FFFEF9;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+  }
+  .identity-row.visible { display: grid; }
+
+  .identity-cell {
+    padding: 0 0;
+    border-right: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 24px;
+  }
+  .identity-cell:first-child { padding-left: 0; }
+  .identity-cell:last-child { border-right: none; }
+
+  .id-label {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-family: 'DM Mono', monospace;
+  }
+  .id-gpt { background: #E8F5E9; color: #1B5E20; }
+  .id-claude { background: #E3F2FD; color: #0D47A1; }
+  .id-human { background: #FFF3E0; color: #E65100; }
+
+  /* FOOTER */
+  .footer {
+    text-align: center;
+    padding: 40px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    margin-top: 20px;
+  }
+
+  @media (max-width: 700px) {
+    .header { padding: 20px; flex-direction: column; align-items: flex-start; }
+    .main { padding: 20px; }
+    .chains-grid { grid-template-columns: 1fr; }
+    .chain-col { border-right: none; border-bottom: 1px solid var(--border); }
+    .identity-row { grid-template-columns: 1fr; }
+    .identity-cell { border-right: none; border-bottom: 1px solid var(--border); padding: 8px 0; }
+    .instructions { padding: 12px 20px; flex-direction: column; gap: 6px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Word Chain Turing Test</h1>
+    <p>Phase 3 — Identify the human-generated chain</p>
+  </div>
+  <div class="header-right">
+    15 trigger words · 3 chains each<br>
+    Chain order randomized per word
+  </div>
+</div>
+
+<div class="instructions">
+  <span>Each row shows 3 chains from the same trigger word</span>
+  <span>One is human · two are AI</span>
+  <span>Click "Reveal" to see which is which</span>
+</div>
+
+<div class="main" id="main"></div>
+
+<div class="footer">
+  DIGS 20006 / 30006 · AI and the Humanities · Final Project Phase 3
+</div>
+
+<script>
+const DATA = [
+  {
+    trigger: "Salt", cat: "A",
+    chains: {
+      gpt: ["Pretzel","Mall","Escalator","Aquarium","Jellyfish","Neon","Arcade","Token","Laundry","Basement","Furnace","Static","Velvet","Cabaret","Mascara","Mirror","Hallway","Pencil","Mustard"],
+      claude: ["Lick","Cow","Bell","Hop","Scotch","Tape","Worm","Hole","Punch","Drunk","Uncle","Wedding","Veil","Mist","Forest","Witch","Hazel","Eye","Patch"],
+      human: ["Angelina","Movie","Spy","Russia","KGB","Espionage","Blonde","Swift","Combat","Mortal","Cold War","Counter-terrorism","Murder","Assassination","Resolve","Jolie","Netflix","Icon","Figure"]
+    }
+  },
+  {
+    trigger: "Needle", cat: "A",
+    chains: {
+      gpt: ["Vinyl","Basement","Mildew","Tangerine","Sticker","Helmet","Cafeteria","Napkin","Blueprint","Parade","Mascara","Velcro","Lobster","Static","Mosaic","Fossil","Curtain","Peppermint","Satellite"],
+      claude: ["Haystack","Barn","Owl","Hoot","Annie","Orphan","Soup","Spoon","Bend","Knee","Cap","Gun","Holster","Cowboy","Lasso","Loop","Cereal","Bowl","Goldfish"],
+      human: ["Syringe","Doctor","Death","Life","Happiness","Drugs","Alcohol","Weed","LSD","Cocaine","Fentanyl","Ecstasy","Dumb","Lifeless","Corpse","Grave","Graveyard","Skeletons","Break-in"]
+    }
+  },
+  {
+    trigger: "Mirror", cat: "A",
+    chains: {
+      gpt: ["Lipstick","Subway","Accordion","Dust","Velvet","Polaroid","Crater","Espresso","Jacket","Firefly","Notebook","Icicle","Arcade","Cinnamon","Balcony","Goggles","Moth","Puddle","Carousel"],
+      claude: ["Shatter","Glass","Cinderella","Pumpkin","Latte","Foam","Mattress","Springs","Coil","Snake","Charmer","Bracelet","Wrist","Watch","Tower","Babel","Fish","Bone","Yard"],
+      human: ["Lens","Glasses","Nerd","Smart","Museum","Exhibit","Display","Computer","Calculator","Math","Numbers","Line","Amusement Park","Ferris Wheel","Chicago","Midway","Grass","Dandelions","Wish"]
+    }
+  },
+  {
+    trigger: "Milk", cat: "A",
+    chains: {
+      gpt: ["Cartoon","Sidewalk","Violin","Ash","Blanket","Magnet","Carnation","Helmet","Popsicle","Attic","Scissors","Comet","Receipt","Pajamas","Nickel","Curtain","Lighthouse","Bubblegum","Tornado"],
+      claude: ["Carton","Missing","Sock","Drawer","Knob","Door","Knocker","Brass","Monkey","Wrench","Plumber","Crack","Egg","Shell","Beach","Towel","Surrender","Flag","Pole"],
+      human: ["White","Marshmallow","Smore","Fire","Saturday","Weekend","Month","Asian","Korean","Kpop","Somebody","Person","Group","Party","Streamers","Colors","Yellow","Sun","Space"]
+    }
+  },
+  {
+    trigger: "Window", cat: "A",
+    chains: {
+      gpt: ["Raincoat","Locker","Pudding","Elevator","Cactus","Receipt","Marble","Telescope","Napkin","Lantern","Velcro","Domino","Fountain","Chalk","Parachute","Battery","Lemonade","Ashtray","Carnival"],
+      claude: ["Sill","Y Chromosome","Helix","Stair","Banister","Slide","Whistle","Kettle","Black","Sheep","Skin","Drum","Roll","Credits","Card","House","Mortgage","Burden"],
+      human: ["Door","House","Refrigerator","Food","Banana","Apple","Hamburger","Pan","Stove","Hot","Pot","Cup","Knife","Fork","Spoon","Eat","Hungry","Dining Hall","Closed"]
+    }
+  },
+  {
+    trigger: "Wait", cat: "B",
+    chains: {
+      gpt: ["Airport","Necktie","Dustpan","Cereal","Fountain","Bandage","Trophy","Lobster","Hallway","Cassette","Pepper","Carousel","Static","Umbrella","Toothpaste","Crayon","Velvet","Ladder","Snowglobe"],
+      claude: ["Loiter","Bench","Press","Iron","Maiden","Voyage","Sickness","Fever","Pitch","Tar","Pit","Bull","Horns","Dilemma","Fork","Tongue","Lash","Whip","Cream"],
+      human: ["No","Problem","Child","Birth","Defect","China","Ball","Math","Jesus","Christ","Lord","Savior","Grace","Mom","Diego","Baseball","Time","Stop","Car"]
+    }
+  },
+  {
+    trigger: "Burn", cat: "B",
+    chains: {
+      gpt: ["Ash","Wednesday","Locker","Pencil","Garage","Neon","Moth","Velcro","Subway","Parade","Lemon","Crater","Tissue","Dice","Chalk","Balcony","Cobra","Static","Envelope"],
+      claude: ["Notice","Eviction","Tenant","Quiet","Library","Whisper","Tunnel","Vision","Quest","Knight","Rook","Castle","Moat","Alligator","Belt","Buckle","Swash","Pirate","Parrot"],
+      human: ["Fire","Water","Earth","Nature","Tree","Green","Matcha","Japan","Ramen","Shin","Korea","BTS","Idol","Jesus","Easter","April","Flower","Bee","Honey"]
+    }
+  },
+  {
+    trigger: "Hold", cat: "B",
+    chains: {
+      gpt: ["Breath","Curtain","Marble","Pocket","Jellyfish","Taxi","Receipt","Ladder","Fossil","Ink","Balcony","Radar","Peach","Helmet","Canyon","Static","Button","Icicle","Velvet"],
+      claude: ["Grudge","Match","Stick","Figure","Eight","Ball","Gown","Prom","Corsage","Wrist","Sprain","Ankle","Bracelet","Charm","Quark","Physics","Homework","Dog","Ate"],
+      human: ["Line","Bat","Queue","Pole","Still","In","Toy","Breath","Water","Liquid","Stuck","Tight","Grip","Palm","Hand","Visa","Arm","Cup","Head"]
+    }
+  },
+  {
+    trigger: "Shout", cat: "B",
+    chains: {
+      gpt: ["Stadium","Plastic","Comet","Napkin","Motor","Pepper","Tunnel","Clover","Quartz","Blanket","Elevator","Puddle","Velcro","Mushroom","Dice","Lantern","Circuit","Feather","Anchor"],
+      claude: ["Hoarse","Whinny","Pony","Express","Lane","Bowling","Gutter","Punk","Mohawk","Tribe","Drum","Beat","Box","Cutter","Sutter","Mill","Wheel","Hamster","Cage"],
+      human: ["Cry","Tears","Sadness","Happiness","Sleep","Drowsy","Caffeine","Strong","Bitter","Flavor","Salty","Personality","Patience","Queue","Crowd","Mob","School","Assembly","Conference"]
+    }
+  },
+  {
+    trigger: "Walk", cat: "B",
+    chains: {
+      gpt: ["Sidewalk","Bubble","Curtain","Battery","Mango","Helmet","Fountain","Receipt","Ashtray","Velvet","Compass","Lobster","Necktie","Parachute","Chalk","Window","Cricket","Basement","Glacier"],
+      claude: ["Plank","Pirate","Eye","Wink","Conspirator","Cloak","Dagger","Stab","Back","Pack","Rat","Tail","Spin","Cycle","Laundry","Quarter","Coin","Toss","Salad"],
+      human: ["Shoes","Adidas","Nike","Athletes","NBA","SGA","Free Throws","Joakim Noah","Bulls","Michael Jordan","Goat","Messi","Bum","Chud","Friends","Family","Home","Dog","Bestfriend"]
+    }
+  },
+  {
+    trigger: "Young", cat: "C",
+    chains: {
+      gpt: ["Backpack","Receipt","Neon","Cactus","Thread","Marble","Elevator","Parade","Soup","Balcony","Nickel","Curtain","Orbit","Dice","Puddle","Velcro","Chalk","Basement","Peach"],
+      claude: ["Whippersnapper","Twig","Snap","Crackle","Static","Cling","Wrap","Gift","Horse","Mouth","Wash","Cloth","Diaper","Pin","Cushion","Stuffing","Turkey","Vulture","Bald"],
+      human: ["Agile","Old","Able","Youth","Naive","Happy","Playful","Short","Energetic","Small","Cute","Fast","Crazy","Group","Project","Work","Paper","Presentation","Job"]
+    }
+  },
+  {
+    trigger: "Almost", cat: "C",
+    chains: {
+      gpt: ["Deadline","Pencil","Raincoat","Battery","Ladder","Spinach","Mosaic","Cricket","Thermos","Fog","Jacket","Piano","Sticker","Rust","Firefly","Canvas","Detour","Helmet","Cherry"],
+      claude: ["Famous","Last","Words","Crossword","Pencil","Eraser","Crumb","Trail","Bread","Loaf","Around","About","Face","Plant","Wilt","Lettuce","Wedge","Heel","Stiletto"],
+      human: ["Close","Soon","Job","Food","Class","Deadline","Test","Exam","Homework","Study","Flaw","Flea","Notebook","iPhone","Pencil","Bag","Two","More","Whiteboard"]
+    }
+  },
+  {
+    trigger: "Stranger", cat: "C",
+    chains: {
+      gpt: ["Subway","Coin","Frost","Magazine","Lemonade","Bandage","Closet","Thunder","Button","Violin","Dust","Keyhole","Napkin","Cliff","Parrot","Sweater","Domino","Harbor","Pepper"],
+      claude: ["Danger","Zone","Endzone","Touchdown","Confetti","Wedding","Cake","Walk","Talk","Show","Off","Switch","Light","House","Boat","Anchor","News","Paper","Cut"],
+      human: ["Things","Monster","School","Computer","Freedom","Money","Power","People","Words","Abstract","Math","Logic","Reading","Creativity","Drawing","Expressive","Open","Nature","Wood"]
+    }
+  },
+  {
+    trigger: "We", cat: "C",
+    chains: {
+      gpt: ["Lantern","Pillow","Ash","Curtain","Pebble","Crayon","Tunnel","Mint","Jigsaw","Glove","Staircase","Tangerine","Helmet","Receipt","Velvet","Compass","Locket","Drizzle","Pineapple"],
+      claude: ["Royal","Flush","Toilet","Plunger","Suction","Cup","Saucer","UFO","Crop","Circle","Jerk","Chicken","Wing","Span","Bridge","Troll","Doll","House","Fly"],
+      human: ["Us","Group","Dinner","Sushi","Fish","Ocean","Coral","Color","Pastel","Paint","Canvas","School","Classes","Professor","Teach","Room","Window","Bathroom","Toilet"]
+    }
+  },
+  {
+    trigger: "Start", cat: "C",
+    chains: {
+      gpt: ["Shoelace","Window","Battery","Carnival","Blanket","Toothpick","Orbit","Kettle","Fossil","Jellybean","Lighthouse","Velcro","Puddle","Accordion","Nap","Copper","Fern","Ticket","Plum"],
+      claude: ["Gun","Smoke","Detector","Trench","Coat","Hanger","Wire","Tap","Dance","Floor","Board","Walk","Way","Side","Kick","Stand","Off","Beat","Poet"],
+      human: ["Big","Back","Front","Up","Town","Hall","Shane Hollander","Hockey","Sport","Cubs","Baseball","Giants","Home","Bay to Breakers","Hospital","Kaiser","Highway","Car"]
+    }
+  }
+];
+
+// Randomize order of chains per trigger word
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+const labelColors = [
+  { label: 'Chain A', dotClass: 'dot-a', labelClass: 'label-a' },
+  { label: 'Chain B', dotClass: 'dot-b', labelClass: 'label-b' },
+  { label: 'Chain C', dotClass: 'dot-c', labelClass: 'label-c' },
+];
+
+const idLabels = {
+  gpt: { text: 'ChatGPT', cls: 'id-gpt' },
+  claude: { text: 'Claude', cls: 'id-claude' },
+  human: { text: 'Human', cls: 'id-human' },
+};
+
+const catLabels = { A: 'Concrete Object', B: 'Action', C: 'Abstract Concept' };
+
+function renderChain(words, isFirst) {
+  return words.map((w, i) => {
+    const cls = i === 0 && isFirst ? 'chain-word trigger-w' : 'chain-word';
+    return `<span class="${cls}">${w}</span>${i < words.length - 1 ? '<span class="chain-arrow">→</span>' : ''}`;
+  }).join('');
+}
+
+const main = document.getElementById('main');
+
+DATA.forEach((item, idx) => {
+  const keys = shuffle(['gpt', 'claude', 'human']);
+
+  const section = document.createElement('div');
+  section.className = 'trigger-section';
+
+  section.innerHTML = `
+    <div class="trigger-header">
+      <div class="trigger-header-left">
+        <span class="trigger-num">${String(idx + 1).padStart(2, '0')} / 15</span>
+        <span class="trigger-word">${item.trigger}</span>
+        <span class="trigger-cat cat-${item.cat}">Cat. ${item.cat} — ${catLabels[item.cat]}</span>
+      </div>
+      <button class="reveal-btn" onclick="toggleReveal(this, '${item.trigger}')">Reveal identities</button>
+    </div>
+
+    <div class="chains-grid">
+      ${keys.map((key, i) => `
+        <div class="chain-col">
+          <div class="chain-label ${labelColors[i].labelClass}">
+            <span class="label-dot ${labelColors[i].dotClass}"></span>
+            ${labelColors[i].label}
+          </div>
+          <div class="chain-words">
+            <span class="chain-word trigger-w">${item.trigger}</span>
+            <span class="chain-arrow">→</span>
+            ${renderChain(item.chains[key], false)}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="identity-row" id="reveal-${item.trigger}">
+      ${keys.map((key, i) => `
+        <div class="identity-cell">
+          <span class="chain-label ${labelColors[i].labelClass}" style="margin:0">
+            <span class="label-dot ${labelColors[i].dotClass}"></span>
+            ${labelColors[i].label}
+          </span>
+          <span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;">→</span>
+          <span class="id-label ${idLabels[key].cls}">${idLabels[key].text}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  main.appendChild(section);
+});
+
+function toggleReveal(btn, trigger) {
+  const row = document.getElementById('reveal-' + trigger);
+  const isVisible = row.classList.contains('visible');
+  row.classList.toggle('visible');
+  btn.textContent = isVisible ? 'Reveal identities' : 'Hide identities';
+  btn.classList.toggle('revealed', !isVisible);
+}
+</script>
+</body>
+</html>

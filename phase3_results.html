@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 3 — Turing Test Results</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap');
+  :root {
+    --bg:#F5F2EC; --surface:#FDFBF7; --border:#E2DDD4;
+    --text:#1A1714; --muted:#7A7369;
+    --gpt:#2563EB; --gpt-light:#EFF6FF;
+    --claude:#7C3AED; --claude-light:#F5F3FF;
+    --human:#B45309; --human-light:#FFFBEB;
+    --correct:#16A34A; --correct-light:#F0FDF4;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:'Syne',sans-serif; line-height:1.6; }
+
+  .header { background:var(--text); color:var(--bg); padding:28px 40px; }
+  .header h1 { font-size:22px; font-weight:700; margin-bottom:4px; }
+  .header p { font-family:'DM Mono',monospace; font-size:11px; color:#AAA9A0; }
+
+  .main { padding:32px 40px; max-width:1000px; margin:0 auto; }
+  .section-title { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase;
+    letter-spacing:0.07em; margin-bottom:14px; margin-top:28px; }
+  .section-title:first-child { margin-top:0; }
+
+  /* FINDING BOX */
+  .finding-box { background:var(--text); color:var(--bg); border-radius:12px; padding:24px 28px; margin-bottom:28px; }
+  .finding-box h2 { font-size:17px; font-weight:600; margin-bottom:16px; line-height:1.45; }
+  .finding-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .finding-item { background:rgba(255,255,255,0.08); border-radius:8px; padding:14px 16px; }
+  .finding-num { font-size:34px; font-weight:700; margin-bottom:4px; }
+  .finding-label { font-family:'DM Mono',monospace; font-size:11px; color:#AAA; line-height:1.55; }
+  .num-gpt { color:#60A5FA; }
+  .num-claude { color:#C084FC; }
+  .num-human { color:#FCD34D; }
+  .num-correct { color:#86EFAC; }
+
+  /* CARD */
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:22px; margin-bottom:16px; }
+  .card-title { font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); margin-bottom:16px; }
+
+  /* PARTICIPANT TABLE */
+  .ptable { width:100%; border-collapse:collapse; font-size:13px; }
+  .ptable th { font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); font-weight:500;
+    text-align:left; padding:8px 14px; border-bottom:1px solid var(--border); }
+  .ptable td { padding:12px 14px; border-bottom:0.5px solid var(--border); }
+  .ptable tr:last-child td { border-bottom:none; }
+  .ptable td:first-child { font-weight:600; font-size:12px; color:var(--muted); font-family:'DM Mono',monospace; }
+
+  .score { display:inline-flex; align-items:center; gap:6px; }
+  .score-num { font-size:18px; font-weight:700; }
+  .score-den { font-size:12px; color:var(--muted); }
+  .score-bar { width:80px; height:8px; background:var(--bg); border-radius:4px; overflow:hidden; display:inline-block; vertical-align:middle; margin-left:8px; }
+  .score-fill { height:100%; border-radius:4px; }
+
+  /* ACCURACY BARS */
+  .acc-row { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+  .acc-row:last-child { margin-bottom:0; }
+  .acc-label { font-family:'DM Mono',monospace; font-size:12px; font-weight:500; width:180px; flex-shrink:0; }
+  .acc-track { flex:1; height:28px; background:var(--bg); border-radius:6px; overflow:hidden; }
+  .acc-fill { height:100%; border-radius:6px; display:flex; align-items:center; padding-left:10px;
+    font-family:'DM Mono',monospace; font-size:11px; font-weight:500; color:white; }
+  .acc-pct { font-family:'DM Mono',monospace; font-size:13px; font-weight:600; width:50px; text-align:right; }
+
+  /* CONFUSION MATRIX */
+  .matrix-wrap { overflow-x:auto; }
+  .matrix { border-collapse:collapse; font-size:12px; width:100%; }
+  .matrix th { font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); font-weight:500;
+    padding:8px 14px; text-align:center; border-bottom:1px solid var(--border); }
+  .matrix td { padding:14px; text-align:center; border:0.5px solid var(--border); }
+  .matrix .row-label { font-family:'DM Mono',monospace; font-size:11px; font-weight:500;
+    text-align:left; padding-left:14px; color:var(--muted); }
+  .cell-correct { background:var(--correct-light); }
+  .cell-val { font-size:22px; font-weight:700; }
+  .cell-pct { font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); margin-top:2px; }
+
+  /* INSIGHT */
+  .insight { font-size:12px; color:var(--muted); line-height:1.75; margin-top:14px;
+    padding-top:14px; border-top:0.5px solid var(--border); }
+  .insight strong { color:var(--text); font-weight:500; }
+
+  /* PREDICTION CHECK */
+  .pred-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px; }
+  .pred-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px; }
+  .pred-title { font-size:13px; font-weight:600; margin-bottom:8px; }
+  .pred-body { font-size:12px; color:var(--muted); line-height:1.7; }
+  .pred-body strong { color:var(--text); font-weight:500; }
+  .badge { display:inline-block; font-family:'DM Mono',monospace; font-size:10px; font-weight:500;
+    padding:2px 10px; border-radius:99px; margin-bottom:8px; }
+  .badge-confirmed { background:#F0FDF4; color:#16A34A; }
+  .badge-partial { background:#FFFBEB; color:#B45309; }
+  .badge-unexpected { background:#F5F3FF; color:#7C3AED; }
+
+  /* DIVIDER */
+  .divider { border:none; border-top:0.5px solid var(--border); margin:24px 0; }
+
+  /* IMPLICATION */
+  .implication { background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:20px; font-size:13px; color:var(--muted); line-height:1.8; margin-bottom:16px; }
+  .implication strong { color:var(--text); font-weight:500; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Phase 3 — Turing Test Results</h1>
+  <p>3 participants · 15 trigger words each · Identifying human-generated word chains</p>
+</div>
+
+<div class="main">
+
+  <!-- KEY FINDING -->
+  <div class="finding-box">
+    <h2>Core finding: Humans correctly identify real humans — but massively misread AI</h2>
+    <div class="finding-grid">
+      <div class="finding-item">
+        <div class="finding-num num-human">83%</div>
+        <div class="finding-label">Average accuracy for Human chains<br>(25/45 correctly identified as human across 3 participants)</div>
+      </div>
+      <div class="finding-item">
+        <div class="finding-num num-claude">50%</div>
+        <div class="finding-label">Average times Claude was identified as human<br>(15/45 — mistaken for human half the time)</div>
+      </div>
+      <div class="finding-item">
+        <div class="finding-num num-gpt">11%</div>
+        <div class="finding-label">Average times GPT was identified as human<br>(5/45 — almost never mistaken)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PER PARTICIPANT -->
+  <div class="section-title">Per-participant breakdown</div>
+  <div class="card">
+    <div class="card-title">Times each chain type was identified as "Human" (out of 15 trigger words)</div>
+    <table class="ptable">
+      <thead>
+        <tr>
+          <th>Participant</th>
+          <th>GPT identified as Human</th>
+          <th>Claude identified as Human</th>
+          <th>Human correctly identified</th>
+          <th>Total correct</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>P1</td>
+          <td>
+            <span class="score"><span class="score-num" style="color:var(--gpt)">2</span><span class="score-den">/ 15</span></span>
+            <span class="score-bar"><span class="score-fill" style="width:13.3%;background:var(--gpt)"></span></span>
+          </td>
+          <td>
+            <span class="score"><span class="score-num" style="color:var(--claude)">5</span><span class="score-den">/ 15</span></span>
+            <span class="score-bar"><span class="score-fill" style="width:33.3%;background:var(--claude)"></span></span>
+          </td>
+          <td>
+            <span class="score"><span class="score-num" style="color:var(--human)">8</span><span class="score-den">/ 15</span></span>
+            <span class="score-bar"><span class="score-fill" style="width:53.3%;background:var(--human)"></span></span>
+          </td>
+          <td><strong>8 / 15 (53%)</strong></td>
+        </tr>
+        <tr>
+          <td>P2</td>
+          <td>
+            <span class="score"><span class="score-num" style="color:var(--gpt)">1</span><span class="score-den">/ 15</span></span>
+            <span class="score-bar"><span class="score-fill" style="width:6.7%;background:var(--gpt)"></span></span>
+          </td>
+          <td>
+            <span class="score"><span class="score-num" style="color:var(--claude)">6</span><span class="score-den">/ 15</span></span>
+            <span class="score-bar"><span class="score-fill" style="width:40%;background:var(--claude)"></span></span>
+          </td>
+          <td>
+            <span class="score"><span class="score-num" style="color:var(--human)">8</span><span class="score-den">/ 15</span></span>
+            <span class="score-bar"><span class="score-fill" style="width:53.3%;background:var(--human)"></span></span>
+          </td>
+          <td><strong>8 / 15 (53%)</strong></td>
+        </tr>
+        <tr>
+          <td>P3</td>
+          <td>
+            <span class="score"><span class="score-num" style="color:var(--gpt)">2</span><span class="score-den">/ 15</span></span>
+            <span class="score-bar"><span class="score-fill" style="width:13.3%;background:var(--gpt)"></span></span>
+          </td>
+          <td>
+            <span class="score"><span class="score-num" style="color:var(--claude)">4</span><span class="score-den">/ 15</span></span>
+            <span class="score-bar"><span class="score-fill" style="width:26.7%;background:var(--claude)"></span></span>
+          </td>
+          <td>
+            <span class="score"><span class="score-num" style="color:var(--human)">9</span><span class="score-den">/ 15</span></span>
+            <span class="score-bar"><span class="score-fill" style="width:60%;background:var(--human)"></span></span>
+          </td>
+          <td><strong>9 / 15 (60%)</strong></td>
+        </tr>
+        <tr style="background:var(--bg)">
+          <td>Average</td>
+          <td><strong style="color:var(--gpt)">1.67 / 15 (11%)</strong></td>
+          <td><strong style="color:var(--claude)">5.0 / 15 (33%)</strong></td>
+          <td><strong style="color:var(--human)">8.33 / 15 (56%)</strong></td>
+          <td><strong>8.33 / 15 (56%)</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ACCURACY BARS -->
+  <div class="section-title">Misidentification rates — how often was each source called "human"?</div>
+  <div class="card">
+    <div class="card-title">Averaged across 3 participants (out of 15 possible each)</div>
+    <div class="acc-row">
+      <span class="acc-label" style="color:var(--human)">Human (correct ID)</span>
+      <div class="acc-track">
+        <div class="acc-fill" style="width:55.6%;background:var(--human)">8.3 / 15 correct</div>
+      </div>
+      <span class="acc-pct" style="color:var(--human)">56%</span>
+    </div>
+    <div class="acc-row">
+      <span class="acc-label" style="color:var(--claude)">Claude → called Human</span>
+      <div class="acc-track">
+        <div class="acc-fill" style="width:33.3%;background:var(--claude)">5.0 / 15 misidentified</div>
+      </div>
+      <span class="acc-pct" style="color:var(--claude)">33%</span>
+    </div>
+    <div class="acc-row">
+      <span class="acc-label" style="color:var(--gpt)">GPT → called Human</span>
+      <div class="acc-track">
+        <div class="acc-fill" style="width:11.1%;background:var(--gpt)">1.7 / 15 misidentified</div>
+      </div>
+      <span class="acc-pct" style="color:var(--gpt)">11%</span>
+    </div>
+    <div class="insight">
+      <strong>Note on totals:</strong> Each participant made 15 judgments total. The numbers don't sum to 15 because participants could pick GPT, Claude, or Human as "human" for each trigger word. The three rows are independent counts, not parts of a whole.
+    </div>
+  </div>
+
+  <!-- CONFUSION MATRIX -->
+  <div class="section-title">Confusion matrix — aggregate across all 3 participants (45 total judgments)</div>
+  <div class="card">
+    <div class="card-title">Rows = actual source · Columns = what evaluators called "Human" vs. not</div>
+    <div class="matrix-wrap">
+      <table class="matrix">
+        <thead>
+          <tr>
+            <th style="text-align:left">Actual source</th>
+            <th>Called "Human" ✓</th>
+            <th>Not called "Human"</th>
+            <th>Misidentification rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="row-label" style="color:var(--human)">Human</td>
+            <td class="cell-correct">
+              <div class="cell-val" style="color:var(--correct)">25</div>
+              <div class="cell-pct">out of 45</div>
+            </td>
+            <td>
+              <div class="cell-val" style="color:var(--muted)">20</div>
+              <div class="cell-pct">missed</div>
+            </td>
+            <td>
+              <div class="cell-val" style="color:var(--human)">56%</div>
+              <div class="cell-pct">correctly identified</div>
+            </td>
+          </tr>
+          <tr>
+            <td class="row-label" style="color:var(--claude)">Claude</td>
+            <td style="background:#FAF5FF">
+              <div class="cell-val" style="color:var(--claude)">15</div>
+              <div class="cell-pct">mistaken for human</div>
+            </td>
+            <td>
+              <div class="cell-val" style="color:var(--muted)">30</div>
+              <div class="cell-pct">correctly rejected</div>
+            </td>
+            <td>
+              <div class="cell-val" style="color:var(--claude)">33%</div>
+              <div class="cell-pct">human misidentification rate</div>
+            </td>
+          </tr>
+          <tr>
+            <td class="row-label" style="color:var(--gpt)">ChatGPT</td>
+            <td style="background:#EFF6FF">
+              <div class="cell-val" style="color:var(--gpt)">5</div>
+              <div class="cell-pct">mistaken for human</div>
+            </td>
+            <td>
+              <div class="cell-val" style="color:var(--muted)">40</div>
+              <div class="cell-pct">correctly rejected</div>
+            </td>
+            <td>
+              <div class="cell-val" style="color:var(--gpt)">11%</div>
+              <div class="cell-pct">human misidentification rate</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="insight">
+      <strong>Key observation:</strong> Evaluators collectively made 45 "this is human" judgments. Of those, 25 were correct (real human), 15 were Claude, and 5 were GPT. This means <strong>Claude accounted for 37.5% of all false positives</strong> — nearly as often as real humans were correctly identified.
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- PREDICTION CHECK -->
+  <div class="section-title">Phase 2 predictions vs. Phase 3 results</div>
+  <div class="pred-grid">
+
+    <div class="pred-card">
+      <span class="badge badge-confirmed">✓ Confirmed</span>
+      <div class="pred-title">GPT would be easy to identify</div>
+      <div class="pred-body">
+        Phase 2 predicted: GPT's random drift and aesthetic word repetition would make it obvious. <strong>Result: 89% rejection rate.</strong> Evaluators almost never called GPT "human" — only 5 times out of 45. The prediction was fully confirmed.
+      </div>
+    </div>
+
+    <div class="pred-card">
+      <span class="badge badge-confirmed">✓ Confirmed</span>
+      <div class="pred-title">Claude would be harder to distinguish</div>
+      <div class="pred-body">
+        Phase 2 predicted: Claude's low opaque rate and traceable transitions would cause frequent misidentification. <strong>Result: 33% misidentification rate.</strong> Claude was called "human" one-third of the time — 3× more than GPT. Confirmed.
+      </div>
+    </div>
+
+    <div class="pred-card">
+      <span class="badge badge-partial">~ Partial</span>
+      <div class="pred-title">Human accuracy would be high</div>
+      <div class="pred-body">
+        Expected high human identification rate given personal markers. <strong>Result: only 56%.</strong> Lower than expected — evaluators missed real humans 44% of the time. This suggests human chains were sometimes <em>too idiosyncratic</em> to be recognized as human — personal references may have seemed random.
+      </div>
+    </div>
+
+    <div class="pred-card">
+      <span class="badge badge-unexpected">★ Unexpected</span>
+      <div class="pred-title">Claude nearly as "human" as real humans</div>
+      <div class="pred-body">
+        Evaluators identified real humans 56% of the time and Claude 33% of the time. The gap is only <strong>23 percentage points</strong>. Claude's compound-word strategy produces chains that feel structured and intentional enough to pass as human over a third of the time — a more humanlike result than anticipated.
+      </div>
+    </div>
+
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- CORE INTERPRETATION -->
+  <div class="section-title">Core interpretation</div>
+  <div class="implication">
+    The most striking finding is the <strong>three-tier hierarchy of humanness</strong>: Human (56%) → Claude (33%) → GPT (11%). This maps almost perfectly onto the Phase 2 connection-type analysis. GPT's 84% opaque rate made it immediately recognizable as non-human. Claude's linguistic compounding strategy — low opaque, traceable transitions — produced chains that <em>feel</em> intentional and structured, mimicking the surface texture of human association without the underlying personal experience.<br><br>
+    Critically, <strong>human chains were not as recognizable as expected</strong> (56%, not ~80%+). This may be because the personal references in human chains (Shane Hollander, Diego, Bay to Breakers) appeared <em>too random</em> to evaluators who lacked that biographical context — the very feature that makes human chains most human (personal specificity) may paradoxically make them harder to identify.<br><br>
+    This creates a central tension for the research question: <strong>AI can replicate the surface structure of human associative thought well enough to deceive one-third of evaluators</strong>, but the mechanism is entirely different — Claude chains from language, humans chain from life.
+  </div>
+
+  <!-- LIMITATION NOTE -->
+  <div class="section-title">Limitations</div>
+  <div class="implication">
+    With only <strong>3 participants</strong>, statistical conclusions are limited. The results are directionally compelling but not generalizable. For the final paper, frame these as <em>pilot findings</em> that establish patterns worth testing at scale. The consistent ranking across all three participants (Human > Claude > GPT) strengthens the pattern despite the small N.
+  </div>
+
+</div>
+</body>
+</html>
